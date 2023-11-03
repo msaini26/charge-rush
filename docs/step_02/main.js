@@ -103,8 +103,8 @@ function update() {
     player.pos = vec(input.pos.x, input.pos.y);
     player.pos.clamp(0, G.WIDTH, 0, G.HEIGHT);
 
-    // color("cyan");
-    color ("black");
+    color("cyan");
+    // color ("black");
     // box(player.pos, 4);
     char("a", player.pos);
 }
