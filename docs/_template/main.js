@@ -8,11 +8,11 @@ description = `
 // The array of custom sprites
 characters = [
 `
-  ll
-  ll
-ccllcc
-ccllcc
-ccllcc
+  PP
+  PP
+ccPPcc
+ccPPcc
+ccPPcc
 cc  cc
 `
 ];
@@ -23,7 +23,12 @@ const G = {
 	HEIGHT: 150,
 
     STAR_SPEED_MIN: 0.5,
-	STAR_SPEED_MAX: 1.0
+	STAR_SPEED_MAX: 1.0,
+
+	PLAYER_FIRE_RATE: 4,
+	PLAYER_GUN_OFFSET: 3,
+
+	FBULLET_SPEED: 5
 };
 
 // Game runtime options
@@ -51,6 +56,8 @@ let stars;
 /**
  * @typedef {{
  * pos: Vector,
+ * firingCooldown: number,
+ * isFiringLeft: boolean
  * }} Player
  */
 
@@ -58,6 +65,18 @@ let stars;
  * @type { Player }
  */
 let player;
+
+/**
+ * @typedef {{
+ * pos: Vector
+ * }} FBullet
+ */
+
+/**
+ * @type { FBullet [] }
+ * 
+ */
+let fBullets;
 
 // The game loop function
 function update() {
@@ -83,8 +102,12 @@ function update() {
         });
 
         player = {
-            pos: vec(G.WIDTH * 0.5, G.HEIGHT * 0.5)
+            pos: vec(G.WIDTH * 0.5, G.HEIGHT * 0.5),
+			firingCooldown: G.PLAYER_FIRE_RATE,
+			isFiringLeft: true
         };
+
+		fBullets = []; // store bullets in array
 	}
 
     // Update for Star
@@ -100,11 +123,40 @@ function update() {
         box(s.pos, 1);
     });
 
+	// updating and drawing the player and input position x and y
     player.pos = vec(input.pos.x, input.pos.y);
     player.pos.clamp(0, G.WIDTH, 0, G.HEIGHT);
 
-    color("cyan");
-    // color ("black");
-    box(player.pos, 4);
-    // char("a", player.pos);
+	// Cooling down for the next shot
+	player.firingCooldown--;
+	// Time to fire the next shot
+	if (player.firingCooldown <= 0) {
+		// Create bullet 
+		fBullets.push({
+			pos: vec(player.pos.x, player.pos.y)
+		});
+		// Reset firing cooldown
+		player.firingCooldown = G.PLAYER_FIRE_RATE;
+	}
+
+    color ("black");
+    char("a", player.pos);
+
+	// Updating and drawing bullets
+	fBullets.forEach((fb) => {
+		// Move bullets upward
+		fb.pos.y -= G.FBULLET_SPEED; // change vertical direction
+
+		// Drawing
+		color("black");
+		box(fb.pos, 2); 
+	});
+
+	// display number of bullets in game world
+	text(fBullets.length.toString(), 3, 10);
+
+	// GOOD TO KNOW FOR FUTURE DELETION OUTSIDE WINDOW
+	remove(fBullets, (fb) => { // delete any bullets outside of screen
+		return fb.pos.y < 0; 
+	});
 }
