@@ -8,15 +8,22 @@ description = `
 // The array of custom sprites
 characters = [
 `
-  PP
-  PP
-ccPPcc
-ccPPcc
-ccPPcc
+  ll
+  ll
+ccllcc
+ccllcc
+ccllcc
 cc  cc
-`
-];
-
+`,`
+rr  rr
+rrrrrr
+rrpprr
+rrrrrr
+  rr
+  rr
+`,
+	];
+		
 // Game design variable container
 const G = {
 	WIDTH: 100,
@@ -28,7 +35,10 @@ const G = {
 	PLAYER_FIRE_RATE: 4,
 	PLAYER_GUN_OFFSET: 3,
 
-	FBULLET_SPEED: 5
+	FBULLET_SPEED: 5,
+
+	ENEMY_MIN_BASE_SPEED: 1.0,
+	ENEMY_MAX_BASE_SPEED: 2.0
 };
 
 // Game runtime options
@@ -78,6 +88,27 @@ let player;
  */
 let fBullets;
 
+/**
+ * @typedef {{
+ * pos: Vector
+ * }} Enemy
+ */
+
+/**
+ * @type { Enemy [] }
+ */
+let enemies;
+
+/**
+ * @type { number }
+ */
+let currentEnemySpeed;
+
+/**
+ * @type { number }
+ */
+let waveCount;
+
 // The game loop function
 function update() {
     // The init function running at startup
@@ -108,6 +139,8 @@ function update() {
         };
 
 		fBullets = []; // store bullets in array
+		enemies = []; // store enemies
+		
 	}
 
     // Update for Star
@@ -131,12 +164,30 @@ function update() {
 	player.firingCooldown--;
 	// Time to fire the next shot
 	if (player.firingCooldown <= 0) {
+		// get the side from which the bullet is fired
+		// shorthand for an if statement (true, false result)
+		const offset = (player.isFiringLeft)
+			? -G.PLAYER_GUN_OFFSET
+			: G.PLAYER_GUN_OFFSET;
 		// Create bullet 
 		fBullets.push({
-			pos: vec(player.pos.x, player.pos.y)
+			pos: vec(player.pos.x + offset, player.pos.y)
 		});
 		// Reset firing cooldown
 		player.firingCooldown = G.PLAYER_FIRE_RATE;
+		// Switch the side of the firing gun by flipping bool val
+		player.isFiringLeft = !player.isFiringLeft;
+
+		color("yellow");
+		// Generate particles
+		particle(
+			player.pos.x + offset, // x coordinate
+			player.pos.y, // y coordinate
+			4, // num of particles
+			1, // particle speed
+			-PI/2, // emitting angle
+			PI/4 // emitting width
+		);
 	}
 
     color ("black");
@@ -148,15 +199,25 @@ function update() {
 		fb.pos.y -= G.FBULLET_SPEED; // change vertical direction
 
 		// Drawing
-		color("black");
+		color("yellow");
 		box(fb.pos, 2); 
 	});
 
 	// display number of bullets in game world
-	text(fBullets.length.toString(), 3, 10);
+	// text(fBullets.length.toString(), 3, 10);
 
 	// GOOD TO KNOW FOR FUTURE DELETION OUTSIDE WINDOW
 	remove(fBullets, (fb) => { // delete any bullets outside of screen
 		return fb.pos.y < 0; 
+	});
+
+	// another update loop
+	// this time with remove()
+	remove(enemies, (e) => {
+		e.pos.y += currentEnemySpeed;
+		color("black");
+		char("b", e.pos);
+
+		return(e.pos.y > G.HEIGHT);
 	});
 }
