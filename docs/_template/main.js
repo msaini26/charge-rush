@@ -143,6 +143,18 @@ function update() {
 		
 	}
 
+	// spawn enemies
+	if (enemies.length === 0) {
+		// difficulty: built-in library var (starts from 1 and increased 1 for every min passed)
+		currentEnemySpeed = rnd(G.ENEMY_MIN_BASE_SPEED, G.ENEMY_MAX_BASE_SPEED) * difficulty;
+		for (let i = 0; i < 9; i++) {
+			const posX = rnd(0, G.WIDTH);
+			const posY = -rnd(i * G.HEIGHT * 0.1);
+			enemies.push({pos: vec(posX, posY)})
+
+		}
+	}
+
     // Update for Star
     stars.forEach((s) => {
         // Move the star downwards
@@ -208,7 +220,8 @@ function update() {
 
 	// GOOD TO KNOW FOR FUTURE DELETION OUTSIDE WINDOW
 	remove(fBullets, (fb) => { // delete any bullets outside of screen
-		return fb.pos.y < 0; 
+		const isCollidingWithEnemies = box(fb.pos, 2).isColliding.char.b;
+		return (isCollidingWithEnemies || fb.pos.y < 0); // either collision or outside game window
 	});
 
 	// another update loop
@@ -216,8 +229,16 @@ function update() {
 	remove(enemies, (e) => {
 		e.pos.y += currentEnemySpeed;
 		color("black");
-		char("b", e.pos);
-
-		return(e.pos.y > G.HEIGHT);
+		// Shorthand to check for collision against another type
+		// draw sprite
+		const isCollidingWithFBullets = char("b", e.pos).isColliding.rect.yellow;
+		
+		// check whether to make particle explosion at collision or note
+		if (isCollidingWithFBullets) {
+			color("yellow");
+			particle(e.pos); // emit explosion where enemy was
+		}
+		// another condition to remove object
+		return(isCollidingWithFBullets || e.pos.y > G.HEIGHT); // check for collision or outside of game window
 	});
 }
