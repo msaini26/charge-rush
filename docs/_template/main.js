@@ -210,18 +210,9 @@ function update() {
 		// Move bullets upward
 		fb.pos.y -= G.FBULLET_SPEED; // change vertical direction
 
-		// Drawing
+		// Drawing fbullets for first time, allowing interaction from enemies
 		color("yellow");
 		box(fb.pos, 2); 
-	});
-
-	// display number of bullets in game world
-	// text(fBullets.length.toString(), 3, 10);
-
-	// GOOD TO KNOW FOR FUTURE DELETION OUTSIDE WINDOW
-	remove(fBullets, (fb) => { // delete any bullets outside of screen
-		const isCollidingWithEnemies = box(fb.pos, 2).isColliding.char.b;
-		return (isCollidingWithEnemies || fb.pos.y < 0); // either collision or outside game window
 	});
 
 	// another update loop
@@ -237,8 +228,21 @@ function update() {
 		if (isCollidingWithFBullets) {
 			color("yellow");
 			particle(e.pos); // emit explosion where enemy was
+			play("explosion");
 		}
 		// another condition to remove object
 		return(isCollidingWithFBullets || e.pos.y > G.HEIGHT); // check for collision or outside of game window
 	});
+
+	// display number of bullets in game world
+	// text(fBullets.length.toString(), 3, 10);
+
+	// GOOD TO KNOW FOR FUTURE DELETION OUTSIDE WINDOW
+	remove(fBullets, (fb) => { // delete any bullets outside of screen
+		// interaction from fBullets to enemies, after enemies have been drawn
+		color("yellow");
+		const isCollidingWithEnemies = box(fb.pos, 2).isColliding.char.b;
+		return (isCollidingWithEnemies || fb.pos.y < 0); // either collision or outside game window
+	});
+
 }
