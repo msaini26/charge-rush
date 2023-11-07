@@ -3,6 +3,7 @@ title = "CHARGE RUSH";
 
 // The description, which is also displayed on the title screen
 description = `
+Destroy enemies.
 `;
 
 // The array of custom sprites
@@ -21,8 +22,14 @@ rrpprr
 rrrrrr
   rr
   rr
-`,
-	];
+`,`
+y  y
+yyyyyy
+ y  y
+yyyyyy
+ y  y
+`
+];
 		
 // Game design variable container
 const G = {
@@ -38,7 +45,11 @@ const G = {
 	FBULLET_SPEED: 5,
 
 	ENEMY_MIN_BASE_SPEED: 1.0,
-	ENEMY_MAX_BASE_SPEED: 2.0
+	ENEMY_MAX_BASE_SPEED: 2.0,
+	ENEMY_FIRE_RATE: 45,
+
+	EBULLET_SPEED: 2.0,
+	EBULLET_ROTATION_SPD: 0.1
 };
 
 // Game runtime options
@@ -47,7 +58,11 @@ options = {
 	viewSize: {x: G.WIDTH, y: G.HEIGHT},
     isCapturing: true,
     isCapturingGameCanvasOnly: true,
-    captureCanvasScale: 2
+    captureCanvasScale: 2,
+	seed: 1,
+	isPlayingBgm: true,
+	theme: "shapeDark",
+	isReplayEnabled: true // super cool technique: replays your last run through
 };
 
 // JSDoc comments for typing
@@ -90,7 +105,8 @@ let fBullets;
 
 /**
  * @typedef {{
- * pos: Vector
+ * pos: Vector,
+ * firingCooldown: number
  * }} Enemy
  */
 
@@ -98,6 +114,21 @@ let fBullets;
  * @type { Enemy [] }
  */
 let enemies;
+
+/**
+ * @typedef {{
+ * pos: Vector,
+ * angle: number,
+ * rotation: number
+ * }} EBullet
+ */
+
+
+
+/**
+ * @type { EBullet [] }
+ */
+let eBullets;
 
 /**
  * @type { number }
@@ -140,6 +171,9 @@ function update() {
 
 		fBullets = []; // store bullets in array
 		enemies = []; // store enemies
+		eBullets = []; // store bullets
+
+		waveCount = 0; // init wave count
 		
 	}
 
@@ -150,8 +184,11 @@ function update() {
 		for (let i = 0; i < 9; i++) {
 			const posX = rnd(0, G.WIDTH);
 			const posY = -rnd(i * G.HEIGHT * 0.1);
-			enemies.push({pos: vec(posX, posY)})
-
+			enemies.push({
+				pos: vec(posX, posY),
+				firingCooldown: G.ENEMY_FIRE_RATE
+			});
+			waveCount++; // increase tracking variable by 1
 		}
 	}
 
@@ -215,10 +252,23 @@ function update() {
 		box(fb.pos, 2); 
 	});
 
+	
 	// another update loop
 	// this time with remove()
 	remove(enemies, (e) => {
 		e.pos.y += currentEnemySpeed;
+		e.firingCooldown--;
+		// generate bullets after firing cool down reaches 0
+		if (e.firingCooldown <= 0) {
+			// create enemy bullets
+			eBullets.push({
+				pos: vec(e.pos.x, e.pos.y),
+				angle: e.pos.angleTo(player.pos),
+				rotation: rnd()
+			});
+			e.firingCooldown = G.ENEMY_FIRE_RATE;
+			play("select"); 
+		}
 		color("black");
 		// Shorthand to check for collision against another type
 		// draw sprite
@@ -229,6 +279,7 @@ function update() {
 			color("yellow");
 			particle(e.pos); // emit explosion where enemy was
 			play("explosion");
+			addScore(10 * waveCount, e.pos);
 		}
 		// another condition to remove object
 		return(isCollidingWithFBullets || e.pos.y > G.HEIGHT); // check for collision or outside of game window
@@ -244,5 +295,29 @@ function update() {
 		const isCollidingWithEnemies = box(fb.pos, 2).isColliding.char.b;
 		return (isCollidingWithEnemies || fb.pos.y < 0); // either collision or outside game window
 	});
+
+	remove(eBullets, (eb) => {
+		// can also use angleTo function instead of trig
+		eb.pos.x += G.EBULLET_SPEED * Math.cos(eb.angle);
+		eb.pos.y += G.EBULLET_SPEED * Math.sin(eb.angle);
+		// The bullet also rotates around itself
+		eb.rotation += G.EBULLET_ROTATION_SPD;
+
+		color("red");
+		const isCollidingWithPlayer = char("c", eb.pos, {rotation: eb.rotation}).isColliding.char.a;
+
+		if (isCollidingWithPlayer) {
+			// End the game
+			end();
+			play("powerUp");
+		}
+
+		const isCollidingWithFBullets = char("c", eb.pos, {rotation: eb.rotation}).isColliding.rect.yellow;
+		if (isCollidingWithFBullets) addScore(1, eb.pos);
+
+		// remove eBullet if not on screen
+		return (!eb.pos.isInRect(0, 0, G.WIDTH, G.HEIGHT));
+	})
+
 
 }
